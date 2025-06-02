@@ -8,7 +8,7 @@ Wat code die ik heb geOCR'd uit dit programmeerboek.
 Ik heb een poging gedaan het wat op te leuken.
 
 Het is een kleine BASIC extensie met wat grafische commando's die de BASIC programma's in het boek ondersteunen.
-Assembleer routines.asm, dat wordt een binary die op $C000 laadt.
+Assembleer routines.asm, dat wordt een binary die op $C000 laadt (routines.prg).
 Converteer diagonaalweb.bas naar een prg file.
 Laad ze allebei en run de BASIC file om een leuk patroon te tekenen.
 
