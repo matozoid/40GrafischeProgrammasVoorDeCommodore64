@@ -3,19 +3,19 @@
 120 rem de machine code bevindt zich in de dataregels
 130 rem 49152 t/m 51210. deze regelnummers komen
 140 rem overeen met het adres van de geheugenplaats
-150 rem waar de eerste code uit de dataregel gepoked word
+150 rem waar de eerste code uit de dataregel gepoked wordt
 160 i=49152 : t=0 : print chr$(147)
 170 read a
-180 :   if a=-1 then 290
-190 :   if a>255 then 230
-200 :   poke i,a
-210 :   t=t+a : i=i+1 : goto 280
-220 :   rem tussencontrole
-230 :       read a$
-240 :       print t,a,a$
-250 :       if t=a then t=0 : goto 280
-260 :       er=1 : t=0
-270 :       print "fout in "; a$
+180 : if a=-1 then 290
+190 : if a>255 then 230
+200 : poke i,a
+210 : t=t+a : i=i+1 : goto 280
+220 : rem tussencontrole
+230 :   read a$
+240 :   print t,a,a$
+250 :   if t=a then t=0 : goto 280
+260 :   er=1 : t=0
+270 :   print "fout in "; a$
 280 goto 170
 290 if er=0 then print "geen fout"
 300 if er=1 then print "fout(en) geconstateerd"
@@ -103,7 +103,7 @@
 49621 data 1,165,251,208,3,76,123
 49628 data 194,165,252,201,0,240,17
 49635 data 201,1,240,40,201,2,240
-49636 data 9049,"regels 49572-49535"
+49636 data 9049,"regels 49572-49635"
 
 49642 data 81,201,3,240,114,169,55
 49649 data 133,1,96,160,0,165,94
@@ -115,7 +115,7 @@
 49691 data 37,95,145,87,169,132,24
 49698 data 101,92,133,92,6,253,6
 49705 data 253,6,253,6,253,177,91
-49706 data 7846,"regels 49642-40705"
+49706 data 7846,"regels 49642-49705"
 
 49712 data 41,15,24,101,253,145,91
 49719 data 169,55,133,1,96,160,0
@@ -127,7 +127,7 @@
 49761 data 160,0,177,87,5,94,5
 49768 data 95,145,87,169,216,24,101
 49775 data 92,133,92,165,253,145,91
-49776 data 7521,"regels 40712-49775"
+49776 data 7521,"regels 49712-49775"
 
 49782 data 169,55,133,1,96,160,0
 49789 data 165,252,240,35,177,87,5
@@ -235,7 +235,7 @@
 50391 data 141,61,3,173,62,3,24
 50398 data 109,90,3,141,62,3,173
 50405 data 63,3,109,91,3,141,63
-50406 data 5995,"regels 50342-50406"
+50406 data 5995,"regels 50342-50405"
 
 50412 data 3,76,41,197,173,86,3
 50419 data 56,237,84,3,141,86,3
