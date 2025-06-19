@@ -12,7 +12,8 @@ Assembleer routines.asm, dat wordt een binary die op $C000 laadt (routines.prg).
 Converteer diagonaalweb.bas naar een prg file.
 Laad ze allebei en run de BASIC file om een leuk patroon te tekenen.
 
-
 Volgens het boek komen de grafische routines uit het blad Commodore Computing (oktober 1983).
 
 Mocht je iets ingetypt hebben uit dit boek, laat het me weten en ik zet het hierbij.
+
+Met dank aan Rob Alderden voor het controleren van de scans, en het intypen van de programma's.
