@@ -80,9 +80,9 @@
                     MODE = $FB      ; zeropage storage for mode (0=320x200, 1=160x200)
                     SOMEPTR = $FC
                     TMP = $FE
-                    FAC3 = $57
-                    FAC4 = $5C
-                    FAC1 = $61
+                    FAC3 = $57          ; tmp pointer storage
+                    FAC4 = $5C          ; tmp pointer storage
+                    FAC1 = $61          ; tmp pointer storage
                     DATASETBUF = $033C       ; datasette buffer
                     BUF = $CF00
 
@@ -92,45 +92,58 @@
 ;   MODE=1: multi-colourstand
 ;   KLEUR : kleurcode voor de rand en het scherm
 ;           (rand valt dus weg) (0=zwart; 1=wit)
-hires_init:         jsr CHKCMA
+hires_init:         ; parse parameters
+                    jsr CHKCMA
                     jsr GETNUM
-                    txa         ; KLEUR
+                    ; Set KLEUR
+                    txa
                     sta EXTCOL
                     sta BGCOL0
-                    lda LINNUM  ; MODE
+                    ; Store MODE
+                    lda LINNUM
                     sta MODE
                     beq Lc015
                     ldx #0
 Lc015:              jsr hires_clear
-                    jsr Sc080
-                    jsr Sc0a6
-hires_enter:        lda #%00111011
+                    jsr clear_screen_ram
+                    jsr clear_colour_ram
+
+hires_enter:        lda #%00111011 ; set bit 5 (bitmap mode)
                     sta VMCTRL1
+                    ; VIC memory setup:
+                    ; - Bitmap at a000-bfff
+                    ; - Color memory at 8400-87e7
                     lda #%00011101
                     sta VMCSB
                     lda MODE
                     beq Lc031
-                    lda #%11011000
+                    lda #%11011000 ; set bit 4 (multicolour mode)
                     sta VMCTRL2
+                    ; ???
 Lc031:              lda #>$8000
                     sta $38         ; pointer to begin of string area
                     sta $34         ; pointer to end of basic area
+                    ; ???
                     lda CIA2PRDDRA
                     ora #%00000011
                     sta CIA2PRDDRA
+                    ; Set VIC bank to 8000-bfff
                     lda CIA2PRTA
                     and #%11111100
                     ora #%00000001
                     sta CIA2PRTA
+                    ; ??? Make cursor work ???
                     lda #>$8400
                     sta $0288       ; hi-byte of screen editor address
+                    ; make USR() call hires_isset
                     lda #<hires_isset
-                    sta $0311       ; USR() function
+                    sta $0311
                     lda #>hires_isset
                     sta $0312
                     rts
 
-hires_clear:        ldy #0        ; Clear color memory?
+; Clear hires bitmap (a000 to bf40)
+hires_clear:        ldy #0
                     lda #$40
                     sta FAC3
                     lda #$bf
@@ -141,7 +154,6 @@ Lc063:              lda #0
                     beq Lc070
                     dec FAC3
                     jmp Lc063
-                    
 Lc070:              dec FAC3+1
                     lda FAC3+1
                     cmp #$9f
@@ -149,10 +161,10 @@ Lc070:              dec FAC3+1
                     lda #$ff
                     sta FAC3
                     jmp Lc063
-                    
 Lc07f:              rts
-                    
-Sc080:              ldy #0
+
+; Set bitmap colour memory (screen RAM from 8400 to 87e7) to X
+clear_screen_ram:              ldy #0
                     lda #$e7
                     sta FAC3
                     lda #$87
@@ -163,7 +175,6 @@ Lc08a:              txa
                     beq Lc096
                     dec FAC3
                     jmp Lc08a
-                    
 Lc096:              dec FAC3+1
                     lda FAC3+1
                     cmp #$83
@@ -171,10 +182,10 @@ Lc096:              dec FAC3+1
                     lda #$ff
                     sta FAC3
                     jmp Lc08a
-                    
 Lc0a5:              rts
-                    
-Sc0a6:              ldy #0
+
+; Clear colour memory (d800 to dbe7)
+clear_colour_ram:              ldy #0
                     lda #$e7
                     sta FAC3
                     lda #$db
@@ -185,7 +196,6 @@ Lc0b0:              lda #0
                     beq Lc0bd
                     dec FAC3
                     jmp Lc0b0
-                    
 Lc0bd:              dec FAC3+1
                     lda FAC3+1
                     cmp #$d7
@@ -193,7 +203,6 @@ Lc0bd:              dec FAC3+1
                     lda #$ff
                     sta FAC3
                     jmp Lc0b0
-                    
 Lc0cc:              rts
                     
 Lc0cd:              lda FAC3+3
@@ -472,9 +481,11 @@ Lc2a4:              lda FAC4+2
                     
 hires_exit:         lda #>$0400
                     sta $0288
+                    ; ???
                     lda CIA2PRDDRA
                     and #%11111100
                     sta CIA2PRDDRA
+                    ;
                     lda #%00011011
                     sta VMCTRL1
                     lda #%11001000
