@@ -115,6 +115,7 @@ hires_enter:        lda #%00111011 ; set bit 5 (bitmap mode)
                     ; - Color memory at 8400-87e7
                     lda #%00011101
                     sta VMCSB
+                    ; Set hires/multicolour
                     lda MODE
                     beq Lc031
                     lda #%11011000 ; set bit 4 (multicolour mode)
