@@ -9,8 +9,8 @@ Y_COORD = $5B
 ; Output
 pixel_screen_ram_addr = $5C
 pixel_bitmap_addr = $57
-pixel_mask_1 = $5C+2
-pixel_mask_2 = $5C+3
+pixel_mask_1 = $5E
+pixel_mask_2 = $5F
 
 prepare_coords:
                     ; X should have 0 or 1 as high byte

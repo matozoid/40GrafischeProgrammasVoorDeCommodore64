@@ -17,7 +17,8 @@ hires_plot:
                     sta SOMEPTR
                     lda LINNUM
                     sta SOMEPTR+1
-Sc1cf:              jsr prepare_coords
+hires_plot_internal:
+                    jsr prepare_coords
                     ; switch out BASIC ROM bank
                     lda #%00110110
                     sta PPORT

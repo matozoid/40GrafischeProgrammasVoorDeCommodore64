@@ -1,45 +1,60 @@
 DATASETBUF = $033C       ; datasette buffer
+x1 = DATASETBUF
+y1 = DATASETBUF+2
+x2 = DATASETBUF+4
+y2 = DATASETBUF+6
 TMP = $FE
 
-hires_line:         jsr CHKCMA
-                    jsr GETNUM
-                    txa
-                    sta DATASETBUF+2
-                    lda #0
-                    sta DATASETBUF+3
-                    lda LINNUM
-                    sta DATASETBUF
-                    lda LINNUM+1
-                    sta DATASETBUF+1
+hires_line:
+                    ; parse x1,y1
                     jsr CHKCMA
                     jsr GETNUM
+                    ; store y1
                     txa
-                    sta DATASETBUF+6
+                    sta y1
                     lda #0
-                    sta DATASETBUF+7
+                    sta y1+1
+                    ; store x1
                     lda LINNUM
-                    sta DATASETBUF+4
+                    sta x1
                     lda LINNUM+1
-                    sta DATASETBUF+5
+                    sta x1+1
+                    ; parse x2, y2
                     jsr CHKCMA
                     jsr GETNUM
+                    ; store y2
+                    txa
+                    sta y2
+                    lda #0
+                    sta y2+1
+                    ; store x2
+                    lda LINNUM
+                    sta x2
+                    lda LINNUM+1
+                    sta x2+1
+                    ; parse colour, brush
+                    jsr CHKCMA
+                    jsr GETNUM
+                    ; store brush
                     txa
                     sta SOMEPTR
                     lda LINNUM
+                    ; store colour
                     sta TMP
-                    lda DATASETBUF+4
+                    ;
+                    lda x2
                     sec
-                    sbc DATASETBUF
+                    sbc x1
                     sta DATASETBUF+8
-                    lda DATASETBUF+5
-                    sbc DATASETBUF+1
+                    lda x2+1
+                    sbc x1+1
                     sta DATASETBUF+9
-                    lda DATASETBUF+6
+                    lda y2
                     sec
-                    sbc DATASETBUF+2
+                    sbc y1
                     sta DATASETBUF+10
-                    lda DATASETBUF+3
-                    sbc DATASETBUF+7
+                    lda y1+1
+                    sbc y2+1
                     sta DATASETBUF+11
                     lda #1
                     sta DATASETBUF+34
@@ -176,15 +191,15 @@ Lc453:              lda $034c
                     lda $034f
                     sbc $034d
                     sta DATASETBUF+27
-Lc497:              lda DATASETBUF
+Lc497:              lda x1
                     sta X_COORD_LO
-                    lda DATASETBUF+1
+                    lda x1+1
                     sta X_COORD_HI
-                    lda DATASETBUF+2
+                    lda y1
                     sta Y_COORD
                     lda TMP
                     sta SOMEPTR+1
-                    jsr Sc1cf
+                    jsr hires_plot_internal
                     lda DATASETBUF+27
                     and #%10000000
                     beq Lc4f0
@@ -195,20 +210,20 @@ Lc497:              lda DATASETBUF
                     lda DATASETBUF+27
                     adc $0351
                     sta DATASETBUF+27
-                    lda DATASETBUF
+                    lda x1
                     clc
                     adc $035c
-                    sta DATASETBUF
-                    lda DATASETBUF+1
+                    sta x1
+                    lda x1+1
                     adc $035d
-                    sta DATASETBUF+1
-                    lda DATASETBUF+2
+                    sta x1+1
+                    lda y1
                     clc
                     adc DATASETBUF+30
-                    sta DATASETBUF+2
-                    lda DATASETBUF+3
+                    sta y1
+                    lda y1+1
                     adc DATASETBUF+31
-                    sta DATASETBUF+3
+                    sta y1+1
                     jmp Lc529
 
 Lc4f0:              lda DATASETBUF+26
@@ -218,20 +233,20 @@ Lc4f0:              lda DATASETBUF+26
                     lda DATASETBUF+27
                     sbc DATASETBUF+25
                     sta DATASETBUF+27
-                    lda DATASETBUF
+                    lda x1
                     clc
                     adc DATASETBUF+36
-                    sta DATASETBUF
-                    lda DATASETBUF+1
+                    sta x1
+                    lda x1+1
                     adc DATASETBUF+37
-                    sta DATASETBUF+1
-                    lda DATASETBUF+2
+                    sta x1+1
+                    lda y1
                     clc
                     adc DATASETBUF+34
-                    sta DATASETBUF+2
-                    lda DATASETBUF+3
+                    sta y1
+                    lda y1+1
                     adc DATASETBUF+35
-                    sta DATASETBUF+3
+                    sta y1+1
 Lc529:              lda $0352
                     sec
                     sbc #1

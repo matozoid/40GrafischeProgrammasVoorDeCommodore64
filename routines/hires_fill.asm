@@ -4,13 +4,13 @@ hires_fill:         jsr CHKCMA
                     jsr GETNUM
                     stx DATASETBUF+2
                     ldx #0
-                    jsr $b7f1
+                    jsr COMBYT
                     stx TMP
                     ldx #0
-                    jsr $b7f1
+                    jsr COMBYT
                     stx DATASETBUF+55
                     ldx #0
-                    jsr $b7f1
+                    jsr COMBYT
                     sta DATASETBUF+56
                     lda #0
                     sta DATASETBUF+3
@@ -111,7 +111,7 @@ Lc71b:              jsr Sc746
                     sta SOMEPTR
                     lda TMP
                     sta SOMEPTR+1
-                    jsr Sc1cf
+                    jsr hires_plot_internal
                     sec
                     lda DATASETBUF
                     sbc DATASETBUF+46
