@@ -5,7 +5,7 @@ hires_fill:         jsr CHKCMA
                     stx DATASETBUF+2
                     ldx #0
                     jsr COMBYT
-                    stx TMP
+                    stx colour_tmp
                     ldx #0
                     jsr COMBYT
                     stx DATASETBUF+55
@@ -48,7 +48,7 @@ Lc67e:              lda #0
                     jsr Sc7bd
 Lc689:              jsr Sc746
                     lda DATASETBUF+55
-                    sta SOMEPTR
+                    sta brush
                     jsr Sc5a7
                     lda DATASETBUF+54
                     beq Lc69c
@@ -56,7 +56,7 @@ Lc689:              jsr Sc746
 
 Lc69c:              jsr Sc746
                     lda DATASETBUF+56
-                    sta SOMEPTR
+                    sta brush
                     jsr Sc5a7
                     lda DATASETBUF+54
                     beq Lc6af
@@ -67,15 +67,15 @@ Lc6af:              lda DATASETBUF+2
                     beq Lc6e0
                     jsr Sc746
                     lda DATASETBUF+55
-                    sta SOMEPTR
-                    inc Y_COORD
+                    sta brush
+                    inc y
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc6e0
                     jsr Sc746
                     lda DATASETBUF+56
-                    sta SOMEPTR
-                    inc Y_COORD
+                    sta brush
+                    inc y
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc6e0
@@ -89,15 +89,15 @@ Lc6e5:              lda #0
                     beq Lc716
                     jsr Sc746
                     lda DATASETBUF+55
-                    sta SOMEPTR
-                    dec Y_COORD
+                    sta brush
+                    dec y
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc716
                     jsr Sc746
                     lda DATASETBUF+56
-                    sta SOMEPTR
-                    dec Y_COORD
+                    sta brush
+                    dec y
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc716
@@ -108,9 +108,9 @@ Lc716:              lda #0
                     sta DATASETBUF+57
 Lc71b:              jsr Sc746
                     lda DATASETBUF+55
-                    sta SOMEPTR
-                    lda TMP
-                    sta SOMEPTR+1
+                    sta brush
+                    lda colour_tmp
+                    sta colour
                     jsr hires_plot_internal
                     sec
                     lda DATASETBUF
@@ -126,11 +126,11 @@ Lc71b:              jsr Sc746
 Lc743:              jmp Lc689
 
 Sc746:              lda DATASETBUF
-                    sta X_COORD_LO
+                    sta x
                     lda DATASETBUF+1
-                    sta X_COORD_HI
+                    sta x+1
                     lda DATASETBUF+2
-                    sta Y_COORD
+                    sta y
                     lda #0
                     sta pixel_screen_ram_addr
                     rts
@@ -158,7 +158,7 @@ Sc779:              lda DATASETBUF+58
 Lc77f:              lda #1
                     sta DATASETBUF+58
                     jsr Sc746
-                    inc Y_COORD
+                    inc y
                     jmp Lc79c
 
 Sc78c:              lda DATASETBUF+57
@@ -168,20 +168,20 @@ Sc78c:              lda DATASETBUF+57
 Lc792:              lda #1
                     sta DATASETBUF+57
                     jsr Sc746
-                    dec Y_COORD
+                    dec y
 Lc79c:              ldx $02
                     cpx #$bb
                     bcc Lc7a8
                     jsr hires_exit
                     jmp OVERR
 
-Lc7a8:              lda X_COORD_LO
+Lc7a8:              lda x
                     sta BUF,x
                     inx
-                    lda X_COORD_HI
+                    lda x+1
                     sta BUF,x
                     inx
-                    lda Y_COORD
+                    lda y
                     sta BUF,x
                     inx
                     stx $02
@@ -191,13 +191,13 @@ Sc7bd:              clc
                     lda DATASETBUF
                     adc DATASETBUF+46
                     sta DATASETBUF+4
-                    sta X_COORD_LO
+                    sta x
                     lda DATASETBUF+1
                     adc #0
                     sta DATASETBUF+5
-                    sta X_COORD_HI
+                    sta x+1
                     lda DATASETBUF+2
-                    sta Y_COORD
+                    sta y
                     lda #0
                     sta pixel_screen_ram_addr
                     lda DATASETBUF+5
@@ -212,7 +212,7 @@ Lc7e6:              lda DATASETBUF+4
                     rts
 
 Lc7ee:              lda DATASETBUF+56
-                    sta SOMEPTR
+                    sta brush
                     jsr Sc5a7
                     lda DATASETBUF+54
                     beq Lc7fc

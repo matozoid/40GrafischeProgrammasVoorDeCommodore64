@@ -1,4 +1,5 @@
-TMP = $FE
+; TODO could probably just use "brush"
+colour_tmp = $FE
 ; all variables are stored in the cassette buffer
 x1 = $033C
 y1 = $033e
@@ -13,13 +14,16 @@ abs_dy = $034a
 primary_delta_abs = $034c
 secondary_delta_abs = $034e
 
-a__ = $0350
+error = $0350
+pixels_left_to_draw = $0352
 error_acc = $0356
 delta_min = $0354
+; TODO probably redundant var
 b__ = $0358
-y__ = $035a
-x__ = $035c
-
+; inc is -1,0 or 1,0 or 0,-1 or 0,1, used to step one pixel of a straight line segment
+y_inc = $035a
+x_inc = $035c
+; step is -1,-1 or 1,-1 or 1,1 or -1,1, used when the coordinate needs to move to the next straight line segment
 step_x = $0360
 step_y = $035e
 
@@ -55,10 +59,10 @@ hires_line:
                     jsr GETNUM
                     ; store brush
                     txa
-                    sta SOMEPTR
+                    sta brush
                     lda LINNUM
                     ; store colour
-                    sta TMP
+                    sta colour_tmp
                     ; dx = x2 - x1
                     lda x2
                     sec
@@ -153,12 +157,14 @@ determine_primary_axis:
                     and #%10000000
                     beq primary_axis_x
                     ; <0, primary axis is y
+primary_axis_y:
+                    ; inc per pixel = 0,-1
                     lda #$ff
-                    sta y__
-                    sta y__+1
+                    sta y_inc
+                    sta y_inc+1
                     lda #0
-                    sta x__
-                    sta x__+1
+                    sta x_inc
+                    sta x_inc+1
                     lda abs_dy
                     sta primary_delta_abs
                     lda abs_dy+1
@@ -170,18 +176,20 @@ determine_primary_axis:
                     lda dy+1
                     and #%10000000
                     bne Lc453
+                    ; inc per pixel = 0,1
                     lda #1
-                    sta y__
+                    sta y_inc
                     lda #0
-                    sta y__+1
+                    sta y_inc+1
                     jmp Lc453
 primary_axis_x:        ; >=0, primary axis = x
+                    ; inc per pixel = -1,0
                     lda #0
-                    sta y__
-                    sta y__+1
+                    sta y_inc
+                    sta y_inc+1
                     lda #$ff
-                    sta x__
-                    sta x__+1
+                    sta x_inc
+                    sta x_inc+1
                     lda abs_dx
                     sta primary_delta_abs
                     lda abs_dx+1
@@ -193,19 +201,22 @@ primary_axis_x:        ; >=0, primary axis = x
                     lda dx+1
                     and #%10000000
                     bne Lc453
+                    ; inc per pixel = 1,0
                     lda #1
-                    sta x__
+                    sta x_inc
                     lda #0
-                    sta x__+1
-                    ;
-Lc453:              lda primary_delta_abs
-                    sta $0352
+                    sta x_inc+1
+Lc453:              ; pixels_left_to_draw = primary_delta_abs
+                    lda primary_delta_abs
+                    sta pixels_left_to_draw
                     lda primary_delta_abs+1
-                    sta $0353
+                    sta pixels_left_to_draw+1
+                    ; error = secondary_delta_abs
                     lda secondary_delta_abs
-                    sta a__
+                    sta error
                     lda secondary_delta_abs+1
-                    sta a__+1
+                    sta error+1
+                    ; delta_min = primary_delta_abs - secondary_delta_abs
                     lda primary_delta_abs
                     sec
                     sbc secondary_delta_abs
@@ -213,6 +224,7 @@ Lc453:              lda primary_delta_abs
                     lda primary_delta_abs+1
                     sbc secondary_delta_abs+1
                     sta delta_min+1
+                    ; error_acc = secondary_delta_abs - (primary_delta_abs/2)
                     lsr primary_delta_abs+1
                     ror primary_delta_abs
                     lda secondary_delta_abs
@@ -224,47 +236,53 @@ Lc453:              lda primary_delta_abs
                     sta error_acc+1
 draw_loop:              
                     lda x1
-                    sta X_COORD_LO
+                    sta x
                     lda x1+1
-                    sta X_COORD_HI
+                    sta x+1
                     lda y1
-                    sta Y_COORD
-                    lda TMP
-                    sta SOMEPTR+1
+                    sta y
+                    lda colour_tmp
+                    sta colour
                     jsr hires_plot_internal
+                    ; error < 0 ?
                     lda error_acc+1
                     and #%10000000
-                    beq Lc4f0
+                    beq step_diagonal
+step_straight:
                     lda error_acc
                     clc
-                    adc a__
+                    adc error
                     sta error_acc
                     lda error_acc+1
-                    adc a__+1
+                    adc error+1
                     sta error_acc+1
+                    ; advance 1 pixel
+                    ; x1 = x1 + x_inc
                     lda x1
                     clc
-                    adc x__
+                    adc x_inc
                     sta x1
                     lda x1+1
-                    adc x__+1
+                    adc x_inc+1
                     sta x1+1
+                    ; y1 = y1 + y_inc
                     lda y1
                     clc
-                    adc y__
+                    adc y_inc
                     sta y1
                     lda y1+1
-                    adc y__+1
+                    adc y_inc+1
                     sta y1+1
                     jmp Lc529
-
-Lc4f0:              lda error_acc
+step_diagonal:              
+                    lda error_acc
                     sec
                     sbc delta_min
                     sta error_acc
                     lda error_acc+1
                     sbc delta_min+1
                     sta error_acc+1
+                    ; step x
                     lda x1
                     clc
                     adc step_x
@@ -272,6 +290,7 @@ Lc4f0:              lda error_acc
                     lda x1+1
                     adc step_x+1
                     sta x1+1
+                    ; step y
                     lda y1
                     clc
                     adc step_y
@@ -279,19 +298,22 @@ Lc4f0:              lda error_acc
                     lda y1+1
                     adc step_y+1
                     sta y1+1
-Lc529:              lda $0352
+
+Lc529:        ; pixels_left_to_draw = pixels_left_to_draw - 1
+                    lda pixels_left_to_draw
                     sec
                     sbc #1
-                    sta $0352
-                    lda $0353
+                    sta pixels_left_to_draw
+                    lda pixels_left_to_draw+1
                     sbc #0
-                    sta $0353
-                    lda $0353
+                    sta pixels_left_to_draw+1
+                    lda pixels_left_to_draw+1
                     beq Lc546
                     cmp #$ff
                     beq line_drawn
                     jmp draw_loop
-Lc546:              lda $0352
+Lc546:              lda pixels_left_to_draw
                     beq line_drawn
                     jmp draw_loop
-line_drawn:              rts
+line_drawn:
+                    rts

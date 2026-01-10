@@ -18,7 +18,7 @@ hires_isset:        lda FAC1+5
                     cmp #$82
                     bne Lc581
                     lda #3
-                    sta SOMEPTR
+                    sta brush
                     bne Lc593
 Lc575:              lda FAC1
                     beq Lc581
@@ -30,20 +30,20 @@ Lc581:              jsr hires_exit
                     jmp FCERR
 
 Lc587:              lda #1
-                    sta SOMEPTR
+                    sta brush
                     bne Lc593
 Lc58d:              lda #2
-                    sta SOMEPTR
+                    sta brush
                     bne Lc593
 Lc593:              jsr CHKCMA
                     jsr GETNUM
-                    stx Y_COORD
+                    stx y
                     lda #0
                     sta pixel_screen_ram_addr
                     lda LINNUM
-                    sta X_COORD_LO
+                    sta x
                     lda LINNUM+1
-                    sta X_COORD_HI
+                    sta x+1
 Sc5a7:              jsr prepare_coords
                     lda MODE
                     beq Lc5b5
@@ -70,15 +70,15 @@ Lc5b5:        ; switch out BASIC ROM bank
                     lda (pixel_bitmap_addr),y
                     and pixel_mask_1
                     beq Lc5e8
-                    lda SOMEPTR
+                    lda brush
                     cmp #3
                     beq Lc5f9
                     bne Lc5ee
-Lc5e0:              lda SOMEPTR
+Lc5e0:              lda brush
                     cmp #1
                     beq Lc5f9
                     bne Lc5ee
-Lc5e8:              lda SOMEPTR
+Lc5e8:              lda brush
                     cmp #2
                     beq Lc5f9
 Lc5ee:              lda #0

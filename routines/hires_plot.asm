@@ -1,22 +1,26 @@
-SOMEPTR = $FC
+; Input
+x = $59
+y = $5B
+brush = $fc
+colour = $fd
 
 hires_plot:
                     ; parse parameters: x, y
                     jsr CHKCMA
                     jsr GETNUM
                     lda LINNUM
-                    sta X_COORD_LO
+                    sta x
                     lda LINNUM+1
-                    sta X_COORD_HI
+                    sta x+1
                     txa
-                    sta Y_COORD
-                    ; parse parameters color, brush
+                    sta y
+                    ; parse parameters colour, brush
                     jsr CHKCMA
                     jsr GETNUM
                     txa
-                    sta SOMEPTR
+                    sta brush
                     lda LINNUM
-                    sta SOMEPTR+1
+                    sta colour
 hires_plot_internal:
                     jsr prepare_coords
                     ; switch out BASIC ROM bank
@@ -29,7 +33,7 @@ hires_plot_internal:
                     ; do a multi colour plot
 hires_plot_mc:
                     ; jump to a specific route for each brush
-                    lda SOMEPTR
+                    lda brush
                     cmp #0
                     beq hires_plot_mc_00
                     cmp #1
@@ -72,15 +76,15 @@ hires_plot_mc_01:
                     clc
                     adc pixel_screen_ram_addr
                     sta pixel_screen_ram_addr
-                    asl SOMEPTR+1
-                    asl SOMEPTR+1
-                    asl SOMEPTR+1
-                    asl SOMEPTR+1
-                    lda (Y_COORD),y
+                    asl colour
+                    asl colour
+                    asl colour
+                    asl colour
+                    lda (y),y
                     and #%00001111
                     clc
-                    adc SOMEPTR+1
-                    sta (Y_COORD),y
+                    adc colour
+                    sta (y),y
                     ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
@@ -99,11 +103,11 @@ hires_plot_mc_10:
                     lda #$84
                     adc pixel_screen_ram_addr
                     sta pixel_screen_ram_addr
-                    lda (Y_COORD),y
+                    lda (y),y
                     and #%11110000
                     clc
-                    adc SOMEPTR+1
-                    sta (Y_COORD),y
+                    adc colour
+                    sta (y),y
                     ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
@@ -119,16 +123,16 @@ hires_plot_mc_11:
                     clc
                     adc pixel_screen_ram_addr
                     sta pixel_screen_ram_addr
-                    lda SOMEPTR+1
-                    sta (Y_COORD),y
+                    lda colour
+                    sta (y),y
                     ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
 
                     ; do a hires plot
-hires_plot_hr:              ldy #0
-                    lda SOMEPTR
+hires_plot_hr:      ldy #0
+                    lda brush
                     beq hires_plot_hr_0
 hires_plot_hr_1:
                     lda (pixel_bitmap_addr),y
@@ -138,23 +142,23 @@ hires_plot_hr_1:
                     clc
                     adc pixel_screen_ram_addr
                     sta pixel_screen_ram_addr
-                    lda SOMEPTR+1
+                    lda colour
                     asl
                     asl
                     asl
                     asl
                     sta pixel_mask_2
-                    lda (Y_COORD),y
+                    lda (y),y
                     and #%00001111
                     clc
                     adc pixel_mask_2
-                    sta (Y_COORD),y
+                    sta (y),y
                     ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
 
-hires_plot_hr_0:              lda pixel_mask_1
+hires_plot_hr_0:    lda pixel_mask_1
                     eor #%11111111
                     sta pixel_mask_1
                     lda (pixel_bitmap_addr),y

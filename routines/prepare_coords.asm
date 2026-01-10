@@ -1,10 +1,5 @@
 ; Takes the coordinates parsed from the BASIC program,
-; and puts them in the right places for the graphics routines.
-
-; Input
-X_COORD_LO = $59
-X_COORD_HI = $5A
-Y_COORD = $5B
+; and puts them in the right places for the plot routine.
 
 ; Output
 pixel_screen_ram_addr = $5C
@@ -14,26 +9,26 @@ pixel_mask_2 = $5F
 
 prepare_coords:
                     ; X should have 0 or 1 as high byte
-                    lda X_COORD_HI
+                    lda x+1
                     cmp #0
                     beq check_y
                     cmp #1
                     bne invalid_x
                     ; and when high byte is 1, low byte should be < 64
                     ; because 256+64 = 320
-                    lda X_COORD_LO
+                    lda x
                     cmp #64
                     bcc check_y
-invalid_x:              jsr hires_exit
+invalid_x:          jsr hires_exit
                     jmp FCERR
 
-check_y:              lda Y_COORD
+check_y:            lda y
                     cmp #200
                     bcc make_pixel_masks
                     jsr hires_exit
                     jmp FCERR
 
-make_pixel_masks:              lda X_COORD_LO
+make_pixel_masks:   lda x
                     and #%00000111
                     sta pixel_mask_1
                     lda #7
@@ -73,14 +68,14 @@ Lc12b:              sta pixel_mask_2
                     sta pixel_screen_ram_addr
                     sta pixel_bitmap_addr+1
                     sta pixel_bitmap_addr
-                    lda Y_COORD
+                    lda y
                     and #%00000111
                     sta pixel_screen_ram_addr+1
-                    lda Y_COORD
+                    lda y
                     lsr
                     lsr
                     lsr
-                    sta Y_COORD
+                    sta y
                     ldy #5
 Lc144:              clc
                     asl
@@ -88,28 +83,28 @@ Lc144:              clc
                     dey
                     bne Lc144
                     sta pixel_bitmap_addr
-                    lda Y_COORD
+                    lda y
                     ldy #3
 Lc151:              clc
                     asl
                     dey
                     bne Lc151
-                    sta Y_COORD
+                    sta y
                     clc
                     adc pixel_bitmap_addr
-                    sta Y_COORD
+                    sta y
                     lda pixel_bitmap_addr+1
                     adc #0
                     sta pixel_screen_ram_addr
                     ldy #3
 Lc165:              clc
-                    lsr X_COORD_HI
-                    ror X_COORD_LO
+                    lsr x+1
+                    ror x
                     dey
                     bne Lc165
-                    lda X_COORD_LO
+                    lda x
                     sta pixel_bitmap_addr
-                    lda X_COORD_HI
+                    lda x+1
                     sta pixel_bitmap_addr+1
                     ldy #3
 Lc177:              clc
@@ -119,7 +114,7 @@ Lc177:              clc
                     bne Lc177
                     ldy #8
 Lc181:              clc
-                    lda Y_COORD
+                    lda y
                     adc pixel_bitmap_addr
                     sta pixel_bitmap_addr
                     lda pixel_screen_ram_addr
@@ -138,11 +133,10 @@ Lc181:              clc
                     adc pixel_bitmap_addr+1
                     sta pixel_bitmap_addr+1
                     clc
-                    lda X_COORD_LO
-                    adc Y_COORD
-                    sta Y_COORD
+                    lda x
+                    adc y
+                    sta y
                     lda #0
                     adc pixel_screen_ram_addr
                     sta pixel_screen_ram_addr
                     rts
-
