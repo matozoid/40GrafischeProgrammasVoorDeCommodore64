@@ -1,9 +1,27 @@
-DATASETBUF = $033C       ; datasette buffer
-x1 = DATASETBUF
-y1 = DATASETBUF+2
-x2 = DATASETBUF+4
-y2 = DATASETBUF+6
 TMP = $FE
+; all variables are stored in the cassette buffer
+x1 = $033C
+y1 = $033e
+x2 = $0340
+y2 = $0342
+dx = $0344
+dy = $0346
+
+abs_dx = $0348
+abs_dy = $034a
+
+primary_delta_abs = $034c
+secondary_delta_abs = $034e
+
+a__ = $0350
+error_acc = $0356
+delta_min = $0354
+b__ = $0358
+y__ = $035a
+x__ = $035c
+
+step_x = $0360
+step_y = $035e
 
 hires_line:
                     ; parse x1,y1
@@ -41,157 +59,171 @@ hires_line:
                     lda LINNUM
                     ; store colour
                     sta TMP
-                    ;
+                    ; dx = x2 - x1
                     lda x2
                     sec
                     sbc x1
-                    sta DATASETBUF+8
+                    sta dx
                     lda x2+1
                     sbc x1+1
-                    sta DATASETBUF+9
+                    sta dx+1
+                    ; dy = y2 - y1
                     lda y2
                     sec
                     sbc y1
-                    sta DATASETBUF+10
+                    sta dy
                     lda y1+1
                     sbc y2+1
-                    sta DATASETBUF+11
+                    sta dy+1
+                    ; determine step direction
+                    ; default to step x,y = 1,1
                     lda #1
-                    sta DATASETBUF+34
-                    sta DATASETBUF+36
+                    sta step_y
+                    sta step_x
                     lda #0
-                    sta DATASETBUF+35
-                    sta DATASETBUF+37
-                    lda DATASETBUF+11
+                    sta step_y+1
+                    sta step_x+1
+                    ; dy<0 ?
+                    lda dy+1
                     and #%10000000
                     beq Lc356
+                    ; then step y = -1
                     lda #$ff
-                    sta DATASETBUF+34
-                    sta DATASETBUF+35
-Lc356:              lda DATASETBUF+9
+                    sta step_y
+                    sta step_y+1
+Lc356:        ; dx<0 ?
+                    lda dx+1
                     and #%10000000
-                    beq Lc365
+                    beq calc_abs_dx
+                    ; then step x = -1
                     lda #$ff
-                    sta DATASETBUF+36
-                    sta DATASETBUF+37
-Lc365:              lda DATASETBUF+9
+                    sta step_x
+                    sta step_x+1
+calc_abs_dx:        ; abs_dx = abs(dx)
+                    lda dx+1
                     and #%10000000
                     beq Lc38a
-                    lda DATASETBUF+9
+                    lda dx+1
                     eor #%11111111
-                    sta $0349
+                    sta abs_dx+1
                     clc
-                    lda DATASETBUF+8
+                    lda dx
                     eor #%11111111
                     adc #1
-                    sta $0348
-                    lda $0349
+                    sta abs_dx
+                    lda abs_dx+1
                     adc #0
-                    sta $0349
-                    jmp Lc396
-
-Lc38a:              lda DATASETBUF+8
-                    sta $0348
-                    lda DATASETBUF+9
-                    sta $0349
-Lc396:              lda DATASETBUF+11
+                    sta abs_dx+1
+                    jmp calc_abs_dy
+Lc38a:              lda dx
+                    sta abs_dx
+                    lda dx+1
+                    sta abs_dx+1
+                    ; abs_dy = abs(dy)
+calc_abs_dy:              lda dy+1
                     and #%10000000
                     beq Lc3bb
-                    lda DATASETBUF+11
+                    lda dy+1
                     eor #%11111111
-                    sta $034b
+                    sta abs_dy+1
                     clc
-                    lda DATASETBUF+10
+                    lda dy
                     eor #%11111111
                     adc #1
-                    sta $034a
-                    lda $034b
+                    sta abs_dy
+                    lda abs_dy+1
                     adc #0
-                    sta $034b
-                    jmp Lc3c7
-
-Lc3bb:              lda DATASETBUF+10
-                    sta $034a
-                    lda DATASETBUF+11
-                    sta $034b
-Lc3c7:              lda $0348
+                    sta abs_dy+1
+                    jmp determine_primary_axis
+Lc3bb:              lda dy
+                    sta abs_dy
+                    lda dy+1
+                    sta abs_dy+1
+                    ; determine primary axis to step along:
+determine_primary_axis:
+                    ; dx - dy < 0?
+                    lda abs_dx
                     sec
-                    sbc $034a
-                    sta $0358
-                    lda $0349
-                    sbc $034b
-                    sta $0359
+                    sbc abs_dy
+                    ; TODO no need to store in b__ ?
+                    sta b__
+                    lda abs_dx+1
+                    sbc abs_dy+1
+                    sta b__+1
                     and #%10000000
-                    beq Lc41a
+                    beq primary_axis_x
+                    ; <0, primary axis is y
                     lda #$ff
-                    sta DATASETBUF+30
-                    sta DATASETBUF+31
+                    sta y__
+                    sta y__+1
                     lda #0
-                    sta $035c
-                    sta $035d
-                    lda $034a
-                    sta $034c
-                    lda $034b
-                    sta $034d
-                    lda $0348
-                    sta $034e
-                    lda $0349
-                    sta $034f
-                    lda DATASETBUF+11
+                    sta x__
+                    sta x__+1
+                    lda abs_dy
+                    sta primary_delta_abs
+                    lda abs_dy+1
+                    sta primary_delta_abs+1
+                    lda abs_dx
+                    sta secondary_delta_abs
+                    lda abs_dx+1
+                    sta secondary_delta_abs+1
+                    lda dy+1
                     and #%10000000
                     bne Lc453
                     lda #1
-                    sta DATASETBUF+30
+                    sta y__
                     lda #0
-                    sta DATASETBUF+31
+                    sta y__+1
                     jmp Lc453
-
-Lc41a:              lda #0
-                    sta DATASETBUF+30
-                    sta DATASETBUF+31
+primary_axis_x:        ; >=0, primary axis = x
+                    lda #0
+                    sta y__
+                    sta y__+1
                     lda #$ff
-                    sta $035c
-                    sta $035d
-                    lda $0348
-                    sta $034c
-                    lda $0349
-                    sta $034d
-                    lda $034a
-                    sta $034e
-                    lda $034b
-                    sta $034f
-                    lda DATASETBUF+9
+                    sta x__
+                    sta x__+1
+                    lda abs_dx
+                    sta primary_delta_abs
+                    lda abs_dx+1
+                    sta primary_delta_abs+1
+                    lda abs_dy
+                    sta secondary_delta_abs
+                    lda abs_dy+1
+                    sta secondary_delta_abs+1
+                    lda dx+1
                     and #%10000000
                     bne Lc453
                     lda #1
-                    sta $035c
+                    sta x__
                     lda #0
-                    sta $035d
-Lc453:              lda $034c
+                    sta x__+1
+                    ;
+Lc453:              lda primary_delta_abs
                     sta $0352
-                    lda $034d
+                    lda primary_delta_abs+1
                     sta $0353
-                    lda $034e
-                    sta $0350
-                    lda $034f
-                    sta $0351
-                    lda $034c
+                    lda secondary_delta_abs
+                    sta a__
+                    lda secondary_delta_abs+1
+                    sta a__+1
+                    lda primary_delta_abs
                     sec
-                    sbc $034e
-                    sta DATASETBUF+24
-                    lda $034d
-                    sbc $034f
-                    sta DATASETBUF+25
-                    lsr $034d
-                    ror $034c
-                    lda $034e
+                    sbc secondary_delta_abs
+                    sta delta_min
+                    lda primary_delta_abs+1
+                    sbc secondary_delta_abs+1
+                    sta delta_min+1
+                    lsr primary_delta_abs+1
+                    ror primary_delta_abs
+                    lda secondary_delta_abs
                     sec
-                    sbc $034c
-                    sta DATASETBUF+26
-                    lda $034f
-                    sbc $034d
-                    sta DATASETBUF+27
-Lc497:              lda x1
+                    sbc primary_delta_abs
+                    sta error_acc
+                    lda secondary_delta_abs+1
+                    sbc primary_delta_abs+1
+                    sta error_acc+1
+draw_loop:              
+                    lda x1
                     sta X_COORD_LO
                     lda x1+1
                     sta X_COORD_HI
@@ -200,52 +232,52 @@ Lc497:              lda x1
                     lda TMP
                     sta SOMEPTR+1
                     jsr hires_plot_internal
-                    lda DATASETBUF+27
+                    lda error_acc+1
                     and #%10000000
                     beq Lc4f0
-                    lda DATASETBUF+26
+                    lda error_acc
                     clc
-                    adc $0350
-                    sta DATASETBUF+26
-                    lda DATASETBUF+27
-                    adc $0351
-                    sta DATASETBUF+27
+                    adc a__
+                    sta error_acc
+                    lda error_acc+1
+                    adc a__+1
+                    sta error_acc+1
                     lda x1
                     clc
-                    adc $035c
+                    adc x__
                     sta x1
                     lda x1+1
-                    adc $035d
+                    adc x__+1
                     sta x1+1
                     lda y1
                     clc
-                    adc DATASETBUF+30
+                    adc y__
                     sta y1
                     lda y1+1
-                    adc DATASETBUF+31
+                    adc y__+1
                     sta y1+1
                     jmp Lc529
 
-Lc4f0:              lda DATASETBUF+26
+Lc4f0:              lda error_acc
                     sec
-                    sbc DATASETBUF+24
-                    sta DATASETBUF+26
-                    lda DATASETBUF+27
-                    sbc DATASETBUF+25
-                    sta DATASETBUF+27
+                    sbc delta_min
+                    sta error_acc
+                    lda error_acc+1
+                    sbc delta_min+1
+                    sta error_acc+1
                     lda x1
                     clc
-                    adc DATASETBUF+36
+                    adc step_x
                     sta x1
                     lda x1+1
-                    adc DATASETBUF+37
+                    adc step_x+1
                     sta x1+1
                     lda y1
                     clc
-                    adc DATASETBUF+34
+                    adc step_y
                     sta y1
                     lda y1+1
-                    adc DATASETBUF+35
+                    adc step_y+1
                     sta y1+1
 Lc529:              lda $0352
                     sec
@@ -257,11 +289,9 @@ Lc529:              lda $0352
                     lda $0353
                     beq Lc546
                     cmp #$ff
-                    beq Lc54e
-                    jmp Lc497
-
+                    beq line_drawn
+                    jmp draw_loop
 Lc546:              lda $0352
-                    beq Lc54e
-                    jmp Lc497
-
-Lc54e:              rts
+                    beq line_drawn
+                    jmp draw_loop
+line_drawn:              rts

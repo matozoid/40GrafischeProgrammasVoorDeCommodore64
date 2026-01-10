@@ -1,4 +1,5 @@
 FAC1 = $61          ; tmp pointer storage
+dunno__ = $0372
 
 hires_isset:        lda FAC1+5
                     bne Lc581
@@ -81,12 +82,12 @@ Lc5e8:              lda SOMEPTR
                     cmp #2
                     beq Lc5f9
 Lc5ee:              lda #0
-                    sta DATASETBUF+54
+                    sta dunno__
                     sta FAC1
                     sta FAC1+1
                     beq Lc606
 Lc5f9:              lda #1
-                    sta DATASETBUF+54
+                    sta dunno__
                     lda #$81
                     sta FAC1
                     lda #$80

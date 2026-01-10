@@ -11,3 +11,5 @@ EXTCOL = $D020  ; Border Color Register
 ; CIA #2 registers
 CIA2PRTA = $DD00
 CIA2PRDDRA = $DD02
+
+DATASETBUF = $033C
