@@ -77,14 +77,20 @@
                     CIA2PRTA = $DD00
                     CIA2PRDDRA = $DD02
 
+                    DATASETBUF = $033C       ; datasette buffer
+                    BUF = $CF00
+
                     MODE = $FB      ; zeropage storage for mode (0=320x200, 1=160x200)
                     SOMEPTR = $FC
                     TMP = $FE
                     FAC3 = $57          ; tmp pointer storage
+                    X_COORD_LO = $59
+                    X_COORD_HI = $5A
+                    Y_COORD = $5B
                     FAC4 = $5C          ; tmp pointer storage
+                    pixel_mask_1 = FAC4+2
+                    pixel_mask_2 = FAC4+3
                     FAC1 = $61          ; tmp pointer storage
-                    DATASETBUF = $033C       ; datasette buffer
-                    BUF = $CF00
 
 
 ; SYS49152,MODE,KLEUR
@@ -205,40 +211,46 @@ Lc0bd:              dec FAC3+1
                     sta FAC3
                     jmp Lc0b0
 Lc0cc:              rts
-                    
-Lc0cd:              lda FAC3+3
+
+; Takes the coordinates parsed from the BASIC program,
+; and puts them in the right places for the graphics routines.
+prepare_coords:
+                    ; X should have 0 or 1 as high byte
+                    lda X_COORD_HI
                     cmp #0
-                    beq Lc0e3
+                    beq check_y
                     cmp #1
-                    bne Lc0dd
-                    lda FAC3+2
-                    cmp #$40
-                    bcc Lc0e3
-Lc0dd:              jsr hires_exit
+                    bne invalid_x
+                    ; and when high byte is 1, low byte should be < 64
+                    ; because 256+64 = 320
+                    lda X_COORD_LO
+                    cmp #64
+                    bcc check_y
+invalid_x:              jsr hires_exit
                     jmp FCERR
                     
-Lc0e3:              lda FAC3+4
-                    cmp #$c8
-                    bcc Lc0ef
+check_y:              lda Y_COORD
+                    cmp #200
+                    bcc make_pixel_masks
                     jsr hires_exit
                     jmp FCERR
-                    
-Lc0ef:              lda FAC3+2
+
+make_pixel_masks:              lda X_COORD_LO
                     and #%00000111
-                    sta FAC4+2
+                    sta pixel_mask_1
                     lda #7
                     sec
-                    sbc FAC4+2
-                    sta FAC4+2
+                    sbc pixel_mask_1
+                    sta pixel_mask_1
                     lda MODE
                     beq Lc10b
-                    lsr FAC4+2
-                    asl FAC4+2
-                    lda FAC4+2
+                    lsr pixel_mask_1
+                    asl pixel_mask_1
+                    lda pixel_mask_1
                     clc
                     adc #1
-                    sta FAC4+3
-Lc10b:              lda FAC4+2
+                    sta pixel_mask_2
+Lc10b:              lda pixel_mask_1
                     beq Lc118
                     tay
                     lda #1
@@ -247,8 +259,8 @@ Lc112:              asl a
                     bne Lc112
                     beq Lc11a
 Lc118:              lda #1
-Lc11a:              sta FAC4+2
-                    lda FAC4+3
+Lc11a:              sta pixel_mask_1
+                    lda pixel_mask_2
                     beq Lc129
                     tay
                     lda #1
@@ -257,19 +269,20 @@ Lc123:              asl a
                     bne Lc123
                     beq Lc12b
 Lc129:              lda #1
-Lc12b:              sta FAC4+3
+Lc12b:              sta pixel_mask_2
+                    ; now calculate memory address of the coordinate
                     lda #0
                     sta FAC4
                     sta FAC3+1
                     sta FAC3
-                    lda FAC3+4
+                    lda Y_COORD
                     and #%00000111
                     sta FAC4+1
-                    lda FAC3+4
+                    lda Y_COORD
                     lsr a
                     lsr a
                     lsr a
-                    sta FAC3+4
+                    sta Y_COORD
                     ldy #5
 Lc144:              clc
                     asl a
@@ -277,28 +290,28 @@ Lc144:              clc
                     dey
                     bne Lc144
                     sta FAC3
-                    lda FAC3+4
+                    lda Y_COORD
                     ldy #3
 Lc151:              clc
                     asl a
                     dey
                     bne Lc151
-                    sta FAC3+4
+                    sta Y_COORD
                     clc
                     adc FAC3
-                    sta FAC3+4
+                    sta Y_COORD
                     lda FAC3+1
                     adc #0
                     sta FAC4
                     ldy #3
 Lc165:              clc
-                    lsr FAC3+3
-                    ror FAC3+2
+                    lsr X_COORD_HI
+                    ror X_COORD_LO
                     dey
                     bne Lc165
-                    lda FAC3+2
+                    lda X_COORD_LO
                     sta FAC3
-                    lda FAC3+3
+                    lda X_COORD_HI
                     sta FAC3+1
                     ldy #3
 Lc177:              clc
@@ -308,7 +321,7 @@ Lc177:              clc
                     bne Lc177
                     ldy #8
 Lc181:              clc
-                    lda FAC3+4
+                    lda Y_COORD
                     adc FAC3
                     sta FAC3
                     lda FAC4
@@ -327,70 +340,80 @@ Lc181:              clc
                     adc FAC3+1
                     sta FAC3+1
                     clc
-                    lda FAC3+2
-                    adc FAC3+4
-                    sta FAC3+4
+                    lda X_COORD_LO
+                    adc Y_COORD
+                    sta Y_COORD
                     lda #0
                     adc FAC4
                     sta FAC4
                     rts
                     
-hires_plot:         jsr CHKCMA
+hires_plot:
+                    ; parse parameters: x, y
+                    jsr CHKCMA
                     jsr GETNUM
                     lda LINNUM
-                    sta FAC3+2
+                    sta X_COORD_LO
                     lda LINNUM+1
-                    sta FAC3+3
+                    sta X_COORD_HI
                     txa
-                    sta FAC3+4
+                    sta Y_COORD
+                    ; parse parameters color, brush
                     jsr CHKCMA
                     jsr GETNUM
                     txa
                     sta SOMEPTR
                     lda LINNUM
                     sta SOMEPTR+1
-Sc1cf:              jsr Lc0cd
+Sc1cf:              jsr prepare_coords
+                    ; switch out BASIC ROM bank
                     lda #%00110110
                     sta PPORT
+                    ;
                     lda MODE
-                    bne Lc1dd
-                    jmp Lc27b
-                    
-Lc1dd:              lda SOMEPTR
+                    bne hires_plot_mc
+                    jmp hires_plot_hr
+                    ; do a multi colour plot
+hires_plot_mc: 
+                    ; jump to a specific route for each brush
+                    lda SOMEPTR
                     cmp #0
-                    beq Lc1f4
+                    beq hires_plot_mc_00
                     cmp #1
-                    beq Lc20f
+                    beq hires_plot_mc_01
                     cmp #2
-                    beq Lc23c
+                    beq hires_plot_mc_10
                     cmp #3
-                    beq Lc261
+                    beq hires_plot_mc_11
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
-                    
-Lc1f4:              ldy #0
-                    lda FAC4+2
+hires_plot_mc_00:              
+                    ldy #0
+                    lda pixel_mask_1
                     eor #%11111111
-                    sta FAC4+2
-                    lda FAC4+3
+                    sta pixel_mask_1
+                    lda pixel_mask_2
                     eor #%11111111
-                    sta FAC4+3
+                    sta pixel_mask_2
                     lda (FAC3),y
-                    and FAC4+2
-                    and FAC4+3
+                    and pixel_mask_1
+                    and pixel_mask_2
                     sta (FAC3),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
                     
-Lc20f:              ldy #0
-                    lda FAC4+3
+hires_plot_mc_01:
+                    ldy #0
+                    lda pixel_mask_2
                     eor #%11111111
-                    sta FAC4+3
+                    sta pixel_mask_2
                     lda (FAC3),y
-                    ora FAC4+2
-                    and FAC4+3
+                    ora pixel_mask_1
+                    and pixel_mask_2
                     sta (FAC3),y
                     lda #$84
                     clc
@@ -400,56 +423,63 @@ Lc20f:              ldy #0
                     asl SOMEPTR+1
                     asl SOMEPTR+1
                     asl SOMEPTR+1
-                    lda (FAC3+4),y
+                    lda (Y_COORD),y
                     and #%00001111
                     clc
                     adc SOMEPTR+1
-                    sta (FAC3+4),y
+                    sta (Y_COORD),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
                     
-Lc23c:              ldy #0
-                    lda FAC4+2
+hires_plot_mc_10:
+                    ldy #0
+                    lda pixel_mask_1
                     eor #%11111111
-                    sta FAC4+2
+                    sta pixel_mask_1
                     lda (FAC3),y
-                    and FAC4+2
-                    ora FAC4+3
+                    and pixel_mask_1
+                    ora pixel_mask_2
                     sta (FAC3),y
                     clc
                     lda #$84
                     adc FAC4
                     sta FAC4
-                    lda (FAC3+4),y
+                    lda (Y_COORD),y
                     and #%11110000
                     clc
                     adc SOMEPTR+1
-                    sta (FAC3+4),y
+                    sta (Y_COORD),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
                     
-Lc261:              ldy #0
+hires_plot_mc_11:
+                    ldy #0
                     lda (FAC3),y
-                    ora FAC4+2
-                    ora FAC4+3
+                    ora pixel_mask_1
+                    ora pixel_mask_2
                     sta (FAC3),y
                     lda #$d8
                     clc
                     adc FAC4
                     sta FAC4
                     lda SOMEPTR+1
-                    sta (FAC3+4),y
+                    sta (Y_COORD),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
                     
-Lc27b:              ldy #0
+                    ; do a hires plot
+hires_plot_hr:              ldy #0
                     lda SOMEPTR
-                    beq Lc2a4
+                    beq hires_plot_hr_0
+hires_plot_hr_1:
                     lda (FAC3),y
-                    ora FAC4+2
+                    ora pixel_mask_1
                     sta (FAC3),y
                     lda #$84
                     clc
@@ -460,22 +490,24 @@ Lc27b:              ldy #0
                     asl a
                     asl a
                     asl a
-                    sta FAC4+3
-                    lda (FAC3+4),y
+                    sta pixel_mask_2
+                    lda (Y_COORD),y
                     and #%00001111
                     clc
-                    adc FAC4+3
-                    sta (FAC3+4),y
+                    adc pixel_mask_2
+                    sta (Y_COORD),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
                     
-Lc2a4:              lda FAC4+2
+hires_plot_hr_0:              lda pixel_mask_1
                     eor #%11111111
-                    sta FAC4+2
+                    sta pixel_mask_1
                     lda (FAC3),y
-                    and FAC4+2
+                    and pixel_mask_1
                     sta (FAC3),y
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     rts
@@ -671,11 +703,11 @@ Lc453:              lda $034c
                     sbc $034d
                     sta DATASETBUF+27
 Lc497:              lda DATASETBUF
-                    sta FAC3+2
+                    sta X_COORD_LO
                     lda DATASETBUF+1
-                    sta FAC3+3
+                    sta X_COORD_HI
                     lda DATASETBUF+2
-                    sta FAC3+4
+                    sta Y_COORD
                     lda TMP
                     sta SOMEPTR+1
                     jsr Sc1cf
@@ -781,37 +813,38 @@ Lc58d:              lda #2
                     bne Lc593
 Lc593:              jsr CHKCMA
                     jsr GETNUM
-                    stx FAC3+4
+                    stx Y_COORD
                     lda #0
                     sta FAC4
                     lda LINNUM
-                    sta FAC3+2
+                    sta X_COORD_LO
                     lda LINNUM+1
-                    sta FAC3+3
-Sc5a7:              jsr Lc0cd
+                    sta X_COORD_HI
+Sc5a7:              jsr prepare_coords
                     lda MODE
                     beq Lc5b5
-                    lda FAC4+3
+                    lda pixel_mask_2
                     clc
-                    adc FAC4+2
-                    sta FAC4+2
-Lc5b5:              lda #%00110110
+                    adc pixel_mask_1
+                    sta pixel_mask_1
+Lc5b5:        ; switch out BASIC ROM bank
+                    lda #%00110110
                     sta PPORT
                     ldy #0
                     lda (FAC3),y
-                    and FAC4+2
+                    and pixel_mask_1
                     beq Lc5ee
                     lda MODE
                     beq Lc5e0
-                    lda FAC4+2
+                    lda pixel_mask_1
                     sec
-                    sbc FAC4+3
-                    sta FAC4+2
+                    sbc pixel_mask_2
+                    sta pixel_mask_1
                     lda (FAC3),y
-                    and FAC4+3
+                    and pixel_mask_2
                     beq Lc5e0
                     lda (FAC3),y
-                    and FAC4+2
+                    and pixel_mask_1
                     beq Lc5e8
                     lda SOMEPTR
                     cmp #3
@@ -842,6 +875,7 @@ Lc606:              lda #0
                     sta FAC1+3
                     sta FAC1+4
                     sta FAC1+5
+                    ; switch in BASIC ROM bank
                     lda #%00110111
                     sta PPORT
                     lda #0
@@ -876,7 +910,7 @@ Lc657:              jsr hires_exit
                     jmp FCERR
                     
 Lc65d:              jsr Sc746
-                    jsr Lc0cd
+                    jsr prepare_coords
                     lda #0
                     sta $02
                     lda MODE
@@ -915,14 +949,14 @@ Lc6af:              lda DATASETBUF+2
                     jsr Sc746
                     lda DATASETBUF+55
                     sta SOMEPTR
-                    inc FAC3+4
+                    inc Y_COORD
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc6e0
                     jsr Sc746
                     lda DATASETBUF+56
                     sta SOMEPTR
-                    inc FAC3+4
+                    inc Y_COORD
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc6e0
@@ -937,14 +971,14 @@ Lc6e5:              lda #0
                     jsr Sc746
                     lda DATASETBUF+55
                     sta SOMEPTR
-                    dec FAC3+4
+                    dec Y_COORD
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc716
                     jsr Sc746
                     lda DATASETBUF+56
                     sta SOMEPTR
-                    dec FAC3+4
+                    dec Y_COORD
                     jsr Sc5a7
                     lda DATASETBUF+54
                     bne Lc716
@@ -973,11 +1007,11 @@ Lc71b:              jsr Sc746
 Lc743:              jmp Lc689
                     
 Sc746:              lda DATASETBUF
-                    sta FAC3+2
+                    sta X_COORD_LO
                     lda DATASETBUF+1
-                    sta FAC3+3
+                    sta X_COORD_HI
                     lda DATASETBUF+2
-                    sta FAC3+4
+                    sta Y_COORD
                     lda #0
                     sta FAC4
                     rts
@@ -1005,7 +1039,7 @@ Sc779:              lda DATASETBUF+58
 Lc77f:              lda #1
                     sta DATASETBUF+58
                     jsr Sc746
-                    inc FAC3+4
+                    inc Y_COORD
                     jmp Lc79c
                     
 Sc78c:              lda DATASETBUF+57
@@ -1015,20 +1049,20 @@ Sc78c:              lda DATASETBUF+57
 Lc792:              lda #1
                     sta DATASETBUF+57
                     jsr Sc746
-                    dec FAC3+4
+                    dec Y_COORD
 Lc79c:              ldx $02
                     cpx #$bb
                     bcc Lc7a8
                     jsr hires_exit
                     jmp OVERR
                     
-Lc7a8:              lda FAC3+2
+Lc7a8:              lda X_COORD_LO
                     sta BUF,x
                     inx
-                    lda FAC3+3
+                    lda X_COORD_HI
                     sta BUF,x
                     inx
-                    lda FAC3+4
+                    lda Y_COORD
                     sta BUF,x
                     inx
                     stx $02
@@ -1038,13 +1072,13 @@ Sc7bd:              clc
                     lda DATASETBUF
                     adc DATASETBUF+46
                     sta DATASETBUF+4
-                    sta FAC3+2
+                    sta X_COORD_LO
                     lda DATASETBUF+1
                     adc #0
                     sta DATASETBUF+5
-                    sta FAC3+3
+                    sta X_COORD_HI
                     lda DATASETBUF+2
-                    sta FAC3+4
+                    sta Y_COORD
                     lda #0
                     sta FAC4
                     lda DATASETBUF+5
