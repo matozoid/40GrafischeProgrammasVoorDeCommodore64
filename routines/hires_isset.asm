@@ -1,41 +1,46 @@
+; TODO no support for brush 00
+
 FAC1 = $61          ; tmp pointer storage
 dunno__ = $0372
 
-hires_isset:        lda FAC1+5
-                    bne Lc581
+hires_isset:        ; parse the number in FAC1
+                    lda FAC1+5
+                    bne invalid_brush
                     lda FAC1+4
-                    bne Lc581
+                    bne invalid_brush
                     lda FAC1+3
-                    bne Lc581
+                    bne invalid_brush
                     lda FAC1+2
-                    bne Lc581
+                    bne invalid_brush
                     lda FAC1+1
                     cmp #$80
                     beq Lc575
                     cmp #$c0
-                    bne Lc581
+                    bne invalid_brush
                     lda FAC1
                     cmp #$82
-                    bne Lc581
+                    bne invalid_brush
+                    ; 82 c0 -> brush 11
                     lda #3
                     sta brush
-                    bne Lc593
+                    bne parse_coordinate
 Lc575:              lda FAC1
-                    beq Lc581
+                    beq invalid_brush
                     cmp #$81
-                    beq Lc587
+                    ; 81 80 -> brush 01
+                    beq brush_01
                     cmp #$82
-                    beq Lc58d
-Lc581:              jsr hires_exit
+                    ; 82 80 -> brush 10
+                    beq brush_10
+invalid_brush:      jsr hires_exit
                     jmp FCERR
-
-Lc587:              lda #1
+brush_01:           lda #1
                     sta brush
-                    bne Lc593
-Lc58d:              lda #2
+                    bne parse_coordinate
+brush_10:           lda #2
                     sta brush
-                    bne Lc593
-Lc593:              jsr CHKCMA
+                    bne parse_coordinate
+parse_coordinate:   jsr CHKCMA
                     jsr GETNUM
                     stx y
                     lda #0
@@ -44,49 +49,62 @@ Lc593:              jsr CHKCMA
                     sta x
                     lda LINNUM+1
                     sta x+1
-Sc5a7:              jsr prepare_coords
+hires_isset_internal:
+                    jsr prepare_coords
+                    ; combine pixel masks when multi colour mode
                     lda MODE
                     beq Lc5b5
                     lda pixel_mask_2
                     clc
                     adc pixel_mask_1
                     sta pixel_mask_1
-Lc5b5:        ; switch out BASIC ROM bank
+Lc5b5:              ; switch out BASIC ROM bank
                     lda #%00110110
                     sta PPORT
+                    ;
                     ldy #0
                     lda (pixel_bitmap_addr),y
                     and pixel_mask_1
-                    beq Lc5ee
+                    ; bit 1 and 2 are 0, return false
+                    beq return_false
+                    ; bit 1 and/or 2 is 1
                     lda MODE
-                    beq Lc5e0
+                    ; in hires mode, there is only 1 bit, so it must be 1
+                    beq check_brush_1
+                    ; TODO undo the combining that we did about 15 lines before?!
                     lda pixel_mask_1
                     sec
                     sbc pixel_mask_2
                     sta pixel_mask_1
                     lda (pixel_bitmap_addr),y
                     and pixel_mask_2
-                    beq Lc5e0
+                    ; if bit 2 = 0, we have 01
+                    beq check_brush_1
+                    ; bit 2 = 1
                     lda (pixel_bitmap_addr),y
                     and pixel_mask_1
-                    beq Lc5e8
+                    ; do we have 10?
+                    beq check_brush_2
+                    ; we have 11
                     lda brush
                     cmp #3
-                    beq Lc5f9
-                    bne Lc5ee
-Lc5e0:              lda brush
+                    beq return_true
+                    bne return_false
+check_brush_1:      lda brush
                     cmp #1
-                    beq Lc5f9
-                    bne Lc5ee
-Lc5e8:              lda brush
+                    beq return_true
+                    bne return_false
+check_brush_2:      lda brush
                     cmp #2
-                    beq Lc5f9
-Lc5ee:              lda #0
+                    beq return_true
+return_false:       ; put 0 in FAC1 as return value
+                    lda #0
                     sta dunno__
                     sta FAC1
                     sta FAC1+1
                     beq Lc606
-Lc5f9:              lda #1
+return_true:        ; put 1 in FAC1 as return value
+                    lda #1
                     sta dunno__
                     lda #$81
                     sta FAC1

@@ -1,3 +1,4 @@
+; This routines implements an unoptimized version of the Bresenham line drawing algorithm.
 ; TODO could probably just use "brush"
 colour_tmp = $FE
 ; all variables are stored in the cassette buffer
@@ -95,7 +96,7 @@ hires_line:
                     lda #$ff
                     sta step_y
                     sta step_y+1
-Lc356:        ; dx<0 ?
+Lc356:              ; dx<0 ?
                     lda dx+1
                     and #%10000000
                     beq calc_abs_dx
@@ -124,7 +125,7 @@ Lc38a:              lda dx
                     lda dx+1
                     sta abs_dx+1
                     ; abs_dy = abs(dy)
-calc_abs_dy:              lda dy+1
+calc_abs_dy:        lda dy+1
                     and #%10000000
                     beq Lc3bb
                     lda dy+1
@@ -182,7 +183,7 @@ primary_axis_y:
                     lda #0
                     sta y_inc+1
                     jmp Lc453
-primary_axis_x:        ; >=0, primary axis = x
+primary_axis_x:     ; >=0, primary axis = x
                     ; inc per pixel = -1,0
                     lda #0
                     sta y_inc
@@ -299,7 +300,7 @@ step_diagonal:
                     adc step_y+1
                     sta y1+1
 
-Lc529:        ; pixels_left_to_draw = pixels_left_to_draw - 1
+Lc529:              ; pixels_left_to_draw = pixels_left_to_draw - 1
                     lda pixels_left_to_draw
                     sec
                     sbc #1

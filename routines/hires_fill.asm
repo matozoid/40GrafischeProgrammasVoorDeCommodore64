@@ -49,7 +49,7 @@ Lc67e:              lda #0
 Lc689:              jsr Sc746
                     lda DATASETBUF+55
                     sta brush
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     beq Lc69c
                     jmp Lc75a
@@ -57,7 +57,7 @@ Lc689:              jsr Sc746
 Lc69c:              jsr Sc746
                     lda DATASETBUF+56
                     sta brush
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     beq Lc6af
                     jmp Lc75a
@@ -69,14 +69,14 @@ Lc6af:              lda DATASETBUF+2
                     lda DATASETBUF+55
                     sta brush
                     inc y
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     bne Lc6e0
                     jsr Sc746
                     lda DATASETBUF+56
                     sta brush
                     inc y
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     bne Lc6e0
                     jsr Sc779
@@ -91,14 +91,14 @@ Lc6e5:              lda #0
                     lda DATASETBUF+55
                     sta brush
                     dec y
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     bne Lc716
                     jsr Sc746
                     lda DATASETBUF+56
                     sta brush
                     dec y
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     bne Lc716
                     jsr Sc78c
@@ -213,7 +213,7 @@ Lc7e6:              lda DATASETBUF+4
 
 Lc7ee:              lda DATASETBUF+56
                     sta brush
-                    jsr Sc5a7
+                    jsr hires_isset_internal
                     lda DATASETBUF+54
                     beq Lc7fc
                     rts
