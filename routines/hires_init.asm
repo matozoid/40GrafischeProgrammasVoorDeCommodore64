@@ -34,11 +34,11 @@ hires_enter:        lda #%00111011 ; set bit 5 (bitmap mode)
                     beq Lc031
                     lda #%11011000 ; set bit 4 (multicolour mode)
                     sta VMCTRL2
-                    ; ???
+                    ; protect graphics memory from BASIC
 Lc031:              lda #>$8000
                     sta $38         ; pointer to begin of string area
                     sta $34         ; pointer to end of basic area
-                    ; ???
+                    ; set port A on CIA#2 to output
                     lda CIA2PRDDRA
                     ora #%00000011
                     sta CIA2PRDDRA
@@ -47,7 +47,7 @@ Lc031:              lda #>$8000
                     and #%11111100
                     ora #%00000001
                     sta CIA2PRTA
-                    ; ??? Make cursor work ???
+                    ; TODO Make cursor work ???
                     lda #>$8400
                     sta $0288       ; hi-byte of screen editor address
                     ; make USR() call hires_isset

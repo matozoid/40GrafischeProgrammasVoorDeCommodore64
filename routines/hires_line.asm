@@ -1,5 +1,5 @@
 ; This routines implements an unoptimized version of the Bresenham line drawing algorithm.
-; TODO could probably just use "brush"
+; TODO could probably just use "colour"
 colour_tmp = $FE
 ; all variables are stored in the cassette buffer
 x1 = $033C

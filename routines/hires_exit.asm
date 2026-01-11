@@ -2,7 +2,7 @@ hires_exit:
                     ; reset screen pointer
                     lda #>$0400
                     sta $0288
-                    ; ???
+                    ; reset port A on CIA#2
                     lda CIA2PRDDRA
                     and #%11111100
                     sta CIA2PRDDRA
