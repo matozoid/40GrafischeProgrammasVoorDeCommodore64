@@ -50,7 +50,7 @@ Lc689:              jsr Sc746
                     lda DATASETBUF+55
                     sta brush
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     beq Lc69c
                     jmp Lc75a
 
@@ -58,7 +58,7 @@ Lc69c:              jsr Sc746
                     lda DATASETBUF+56
                     sta brush
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     beq Lc6af
                     jmp Lc75a
 
@@ -70,14 +70,14 @@ Lc6af:              lda DATASETBUF+2
                     sta brush
                     inc y
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     bne Lc6e0
                     jsr Sc746
                     lda DATASETBUF+56
                     sta brush
                     inc y
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     bne Lc6e0
                     jsr Sc779
                     jmp Lc6e5
@@ -92,14 +92,14 @@ Lc6e5:              lda #0
                     sta brush
                     dec y
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     bne Lc716
                     jsr Sc746
                     lda DATASETBUF+56
                     sta brush
                     dec y
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     bne Lc716
                     jsr Sc78c
                     jmp Lc71b
@@ -214,7 +214,7 @@ Lc7e6:              lda DATASETBUF+4
 Lc7ee:              lda DATASETBUF+56
                     sta brush
                     jsr hires_isset_internal
-                    lda DATASETBUF+54
+                    lda is_set
                     beq Lc7fc
                     rts
 

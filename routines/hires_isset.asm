@@ -1,7 +1,8 @@
 ; TODO no support for brush 00
 
-FAC1 = $61          ; tmp pointer storage
-dunno__ = $0372
+FAC1 = $61          ; USR() parameter and return value storage
+; return value for callers of hires_isset_internal
+is_set = $0372
 
 hires_isset:        ; parse the number in FAC1
                     lda FAC1+5
@@ -99,13 +100,13 @@ check_brush_2:      lda brush
                     beq return_true
 return_false:       ; put 0 in FAC1 as return value
                     lda #0
-                    sta dunno__
+                    sta is_set
                     sta FAC1
                     sta FAC1+1
                     beq Lc606
 return_true:        ; put 1 in FAC1 as return value
                     lda #1
-                    sta dunno__
+                    sta is_set
                     lda #$81
                     sta FAC1
                     lda #$80
