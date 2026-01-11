@@ -1,6 +1,5 @@
 ; This routines implements an unoptimized version of the Bresenham line drawing algorithm.
-; TODO could probably just use "colour"
-colour_tmp = $FE
+line_colour = $FE
 ; all variables are stored in the cassette buffer
 x1 = $033C
 y1 = $033e
@@ -63,7 +62,7 @@ hires_line:
                     sta brush
                     lda LINNUM
                     ; store colour
-                    sta colour_tmp
+                    sta line_colour
                     ; dx = x2 - x1
                     lda x2
                     sec
@@ -242,7 +241,7 @@ draw_loop:
                     sta x+1
                     lda y1
                     sta y
-                    lda colour_tmp
+                    lda line_colour
                     sta colour
                     jsr hires_plot_internal
                     ; error < 0 ?

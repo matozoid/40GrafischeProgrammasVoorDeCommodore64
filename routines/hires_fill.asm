@@ -1,6 +1,22 @@
 ; An unoptimized fill routine.
-; It seems unfinished because its multicolour support is broken,
-; and it ignores its brush parameters.
+; It seems unfinished because:
+;   - its multicolour support is broken
+;   - it ignores its brush parameters
+;
+; Overall approach:
+;   - move x,y right until a set pixel is found, or right side of the screen hit
+;   - repeat:
+;      - if current pixel is set:
+;           - if stack not empty: pop a coordinate and go to the first step
+;           - else fill routine is done
+;      - if pixel at y+1 is set:
+;           - void below has not been seen
+;           - else if void below has not been seen:
+;               - push it on the stack
+;               - void below has been seen
+;      - same for pixel at y-1
+;      - set the current pixel
+;      - x=x-1
 postponed_coordinate_stack_ptr = $02
 postponed_coordinate_stack = $CF00
 
@@ -12,8 +28,8 @@ horizontal_step = $036a
 brush_1 = $0373
 brush_2 = $0374
 
-continue_left = DATASETBUF+57
-continue_right = DATASETBUF+58
+void_above_pushed = $0375
+void_below_pushed = $0376
 
 hires_fill:         ; parse parameters
                     jsr CHKCMA
@@ -23,7 +39,7 @@ hires_fill:         ; parse parameters
                     ; store colour
                     ldx #0
                     jsr COMBYT
-                    stx colour_tmp
+                    stx line_colour
                     ; store brush 1
                     ldx #0
                     jsr COMBYT
@@ -63,16 +79,16 @@ Lc65d:              jsr prepare_for_prepare_coords
                     sta brush_1
                     sta brush_2
                     sta horizontal_step
-                    jmp evaluate_coordinate
+                    jmp start_new_line
 
 Lc679:              lda #2                      ; multi colour mode: double width pixels.
                     sta horizontal_step
-evaluate_coordinate:
+start_new_line:
                     lda #0
-                    sta continue_right
-                    sta continue_left
+                    sta void_below_pushed
+                    sta void_above_pushed
                     jsr scan_right_until_pixel_hit
-Lc689:              ; pixel at fill_x,y is brush_1 ? 
+check_current_coord:; pixel at fill_x,y is brush_1 ?
                     jsr prepare_for_prepare_coords
                     lda brush_1
                     sta brush
@@ -80,17 +96,16 @@ Lc689:              ; pixel at fill_x,y is brush_1 ?
                     lda is_set
                     beq _not_brush_1
                     jmp pop_coordinate_and_continue
-
 _not_brush_1:       ; pixel at fill_x,y is brush_2 ? 
                     jsr prepare_for_prepare_coords
                     lda brush_2
                     sta brush
                     jsr hires_isset_internal
                     lda is_set
-                    beq _not_brush_2
+                    beq _check_down
                     jmp pop_coordinate_and_continue
-
-_not_brush_2:       lda fill_y
+_check_down:        ; 
+                    lda fill_y
                     cmp #199
                     beq Lc6e0
                     jsr prepare_for_prepare_coords
@@ -107,12 +122,11 @@ _not_brush_2:       lda fill_y
                     jsr hires_isset_internal
                     lda is_set
                     bne Lc6e0
-                    jsr Sc779
-                    jmp Lc6e5
-
+                    jsr push_down_coord
+                    jmp check_up
 Lc6e0:              lda #0
-                    sta continue_right
-Lc6e5:              lda #0
+                    sta void_below_pushed
+check_up:           lda #0
                     cmp fill_y
                     beq Lc716
                     jsr prepare_for_prepare_coords
@@ -129,17 +143,17 @@ Lc6e5:              lda #0
                     jsr hires_isset_internal
                     lda is_set
                     bne Lc716
-                    jsr Sc78c
-                    jmp Lc71b
-
+                    jsr push_up_coord
+                    jmp set_current_pixel
 Lc716:              lda #0
-                    sta continue_left
-Lc71b:              jsr prepare_for_prepare_coords
+                    sta void_above_pushed
+set_current_pixel:  jsr prepare_for_prepare_coords
                     lda brush_1
                     sta brush
-                    lda colour_tmp
+                    lda line_colour
                     sta colour
                     jsr hires_plot_internal
+                    ; move left 1 step
                     sec
                     lda fill_x
                     sbc horizontal_step
@@ -150,8 +164,7 @@ Lc71b:              jsr prepare_for_prepare_coords
                     cmp #2
                     bcc Lc743
                     jmp pop_coordinate_and_continue
-
-Lc743:              jmp Lc689
+Lc743:              jmp check_current_coord
 
 prepare_for_prepare_coords:
                     lda fill_x
@@ -177,33 +190,32 @@ pop_coordinate_and_continue:
                     lda postponed_coordinate_stack,x
                     sta fill_x
                     stx postponed_coordinate_stack_ptr
-                    jmp evaluate_coordinate
+                    jmp start_new_line
 _stack_empty:       rts
 
-Sc779:              lda continue_right
-                    beq Lc77f
+push_down_coord:    lda void_below_pushed
+                    beq void_below_not_pushed
                     rts
-
-Lc77f:              lda #1
-                    sta continue_right
+void_below_not_pushed:              
+                    lda #1
+                    sta void_below_pushed
                     jsr prepare_for_prepare_coords
                     inc y
-                    jmp Lc79c
+                    jmp push_coord
 
-Sc78c:              lda continue_left
-                    beq Lc792
+push_up_coord:      lda void_above_pushed
+                    beq void_above_not_pushed
                     rts
-
-Lc792:              lda #1
-                    sta continue_left
+void_above_not_pushed:
+                    lda #1
+                    sta void_above_pushed
                     jsr prepare_for_prepare_coords
                     dec y
-Lc79c:              ldx postponed_coordinate_stack_ptr
+push_coord:         ldx postponed_coordinate_stack_ptr
                     cpx #$bb
                     bcc Lc7a8
                     jsr hires_exit
                     jmp OVERR
-
 Lc7a8:              lda x
                     sta postponed_coordinate_stack,x
                     inx
